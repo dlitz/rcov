@@ -103,21 +103,20 @@ module Rcov
           (@name==:rcov ? "" : " for #{actual_name}")
       end
       task @name do
-        run_code = ''
         RakeFileUtils.verbose(@verbose) do
-          run_code =
-          case rcov_path
-          when nil, ''
-            "-S rcov"
-          else %!"#{rcov_path}"!
-          end
           ruby_opts = @ruby_opts.clone
           ruby_opts.push( "-I#{lib_path}" )
-          ruby_opts.push run_code
+          case rcov_path
+          when nil, ''
+            ruby_opts.push "-S"
+            ruby_opts.push "rcov"
+          else
+            ruby_opts.push rcov_path
+          end
           ruby_opts.push( "-w" ) if @warning
-          ruby ruby_opts.join(" ") + " " + option_list +
-          %[ -o "#{@output_dir}" ] +
-          file_list.collect { |fn| %["#{fn}"] }.join(' ')
+          ruby shellquote_args(ruby_opts) + " " + option_list +
+          " " + shellquote_args(['-o', @output_dir]) + " " +
+          shellquote_args(file_list)
         end
       end
 
@@ -138,7 +137,7 @@ module Rcov
     end
 
     def option_list # :nodoc:
-      ENV['RCOVOPTS'] || @rcov_opts.join(" ") || ""
+      ENV['RCOVOPTS'] || shellquote_args(@rcov_opts) || ""
     end
 
     def file_list # :nodoc:
@@ -150,6 +149,21 @@ module Rcov
         result += FileList[ @pattern ].to_a if @pattern
         FileList[result]
       end
+    end
+
+    private
+
+    def shellquote_arg(arg)  # :nodoc:
+      # Shell-quote an argument, by surrounding it in single-quotes, and
+      # replacing internal single-quotes by '\'' (closing quote,
+      # backslash-quote, opening quote)
+      "'"+arg.gsub(/'/, "'\\\\''")+"'"
+    end
+
+    def shellquote_args(args) # :nodoc:
+      # Shell-quote a list of arguments
+      return nil unless args
+      args.map{ |arg| shellquote_arg(arg) }.join(' ')
     end
   end
 end
