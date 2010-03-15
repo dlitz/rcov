@@ -24,8 +24,13 @@ class TestRcovTask < Test::Unit::TestCase
         t.rcov_opts = [ '--exclude', %q!(\A|/)(test_.*|.*_spec)\.rb\Z! ]
         t.rcov_opts += [ '--diff-cmd', %q!O'Brian's Diff Tool! ]
       end
-      assert_equal %q!'-I/path/with spaces/lib' '-Ilib' 'bin/rcov' '--exclude' '(\\A|/)(test_.*|.*_spec)\\.rb\\Z' '--diff-cmd' 'O'\\''Brian'\\''s Diff Tool' '-o' 'coverage' 'foo.rb'!,
-        t.send(:shellquoted_ruby_args), "shell arguments should be quoted properly for POSIX shells"
+      if File::Separator == "\\"    # Win32 - XXX untested
+        assert_equal %q!"-I/path/with spaces/lib" "-Ilib" "bin/rcov" "--exclude" "(\\A|/)(test_.*|.*_spec)\\.rb\\Z" "--diff-cmd" "O'Brian's Diff Tool" "-o" "coverage" "foo.rb"!,
+          t.send(:shellquoted_ruby_args), "shell arguments should be quoted properly for Win32 shell"
+      else  # POSIX /bin/sh
+        assert_equal %q!'-I/path/with spaces/lib' '-Ilib' 'bin/rcov' '--exclude' '(\\A|/)(test_.*|.*_spec)\\.rb\\Z' '--diff-cmd' 'O'\\''Brian'\\''s Diff Tool' '-o' 'coverage' 'foo.rb'!,
+          t.send(:shellquoted_ruby_args), "shell arguments should be quoted properly for POSIX shells"
+      end
     ensure
       ENV['RCOVPATH'] = saved_rcovpath if saved_rcovpath
       ENV['RCOVOPTS'] = saved_rcovopts if saved_rcovopts

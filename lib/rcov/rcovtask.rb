@@ -140,11 +140,18 @@ module Rcov
 
     private
 
+    # Shell-quote an argument
     def shellquote_arg(arg)  # :nodoc:
-      # Shell-quote an argument, by surrounding it in single-quotes, and
-      # replacing internal single-quotes by '\'' (closing quote,
-      # backslash-quote, opening quote)
-      "'"+arg.gsub(/'/, "'\\\\''")+"'"
+      if File::Separator == "\\"  # Win32 - XXX untested
+        raise ArgumentError.new("Illegal character(s) in argument") if arg =~ /["\000]/m
+        '"' + arg + '"'
+      else  # POSIX /bin/sh
+        # Shell-quote an argument, by surrounding it in single-quotes, and
+        # replacing internal single-quotes by '\'' (closing quote,
+        # backslash-quote, opening quote)
+        raise ArgumentError.new("Illegal character(s) in argument") if arg =~ /[\000]/m
+        "'"+arg.gsub(/'/, "'\\\\''")+"'"
+      end
     end
 
     def shellquote_args(args) # :nodoc:
