@@ -96,7 +96,6 @@ module Rcov
 
     # Create the tasks defined by this task lib.
     def define
-      lib_path = @libs.join(File::PATH_SEPARATOR)
       actual_name = Hash === name ? name.keys.first : name
       unless Rake.application.last_comment
         desc "Analyze code coverage with tests" + 
@@ -104,19 +103,7 @@ module Rcov
       end
       task @name do
         RakeFileUtils.verbose(@verbose) do
-          ruby_opts = @ruby_opts.clone
-          ruby_opts.push( "-I#{lib_path}" )
-          case rcov_path
-          when nil, ''
-            ruby_opts.push "-S"
-            ruby_opts.push "rcov"
-          else
-            ruby_opts.push rcov_path
-          end
-          ruby_opts.push( "-w" ) if @warning
-          ruby shellquote_args(ruby_opts) + " " + option_list +
-          " " + shellquote_args(['-o', @output_dir]) + " " +
-          shellquote_args(file_list)
+          ruby shellquoted_ruby_args
         end
       end
 
@@ -164,6 +151,25 @@ module Rcov
       # Shell-quote a list of arguments
       return nil unless args
       args.map{ |arg| shellquote_arg(arg) }.join(' ')
+    end
+
+    def shellquoted_ruby_args # :nodoc:
+      # Return the string that will be passed to FileUtils#ruby when the task
+      # is invoked.  Ideally, rake would provide a FileUtils#ruby method that
+      # took a list of program arguments, rather than a string that needs to
+      # be parsed by a shell.
+      lib_path = @libs.join(File::PATH_SEPARATOR)
+      ruby_opts = @ruby_opts.clone
+      ruby_opts.push( "-I#{lib_path}" )
+      case rcov_path
+      when nil, ''
+        ruby_opts.push "-S"
+        ruby_opts.push "rcov"
+      else
+        ruby_opts.push rcov_path
+      end
+      ruby_opts.push( "-w" ) if @warning
+      shellquote_args(ruby_opts) + " " + option_list + " " + shellquote_args(['-o', @output_dir]) + " " + shellquote_args(file_list)
     end
   end
 end
